@@ -973,7 +973,7 @@
         function init() {
             userId = 'user_' + Math.random().toString(36).substr(2, 9);
             
-            // 先使用默认座位初始化并立即渲染
+            // 先使用默认座位初始化并立即渲染，确保页面立即可用
             seats = getDefaultSeatsObject();
             generateDates();
             renderSeats();
