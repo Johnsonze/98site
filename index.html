@@ -993,14 +993,12 @@
 
             socket.on('seatsData', (data) => {
                 if (data && data.seats) {
-                    // 如果是数组格式，转换为对象
                     if (Array.isArray(data.seats)) {
                         seats = arrayToObject(data.seats);
                     } else {
                         seats = data.seats;
                     }
                 } else {
-                    // 没有数据时使用默认座位
                     seats = getDefaultSeatsObject();
                 }
                 renderSeats();
