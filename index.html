@@ -1034,8 +1034,6 @@
             socket.on('error', ({ message }) => {
                 alert(message);
             });
-
-            updateLoading(true, '正在连接服务器...');
         }
 
         window.addEventListener('load', init);
