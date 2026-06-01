@@ -972,13 +972,18 @@
 
         function init() {
             userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            
+            // 先使用默认座位初始化并立即渲染
+            seats = getDefaultSeatsObject();
+            generateDates();
+            renderSeats();
+            updateLoading(false);
+            
             socket = io(BACKEND_URL);
 
             socket.on('connect', () => {
                 console.log('已连接到服务器');
                 updateConnectionStatus(true);
-                updateLoading(false);
-                generateDates();
                 socket.emit('getSeats', currentDate);
             });
 
