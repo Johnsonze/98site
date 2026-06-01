@@ -653,7 +653,7 @@
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const BACKEND_URL = 'https://a98-sites-264999-8-1439101030.sh.run.tcloudbase.com';
+        const BACKEND_URL = 'https://a98-sites-264999-8-1439101030.sh.run.tcloudbase.com/';
         
         const SEAT_CONFIG = {
             left: ['F01', 'F02', 'F03', 'F04'],
@@ -670,6 +670,64 @@
                 ['A36', 'A38', 'A39', 'A50']
             ]
         };
+
+        const DEFAULT_SEATS = [
+            { id: 'A01', name: '', selected: false, isLocked: false },
+            { id: 'A02', name: '', selected: false, isLocked: false },
+            { id: 'A03', name: '', selected: false, isLocked: false },
+            { id: 'A05', name: '', selected: false, isLocked: false },
+            { id: 'A06', name: '', selected: false, isLocked: false },
+            { id: 'A08', name: '', selected: false, isLocked: false },
+            { id: 'A09', name: '', selected: false, isLocked: false },
+            { id: 'A10', name: '', selected: false, isLocked: false },
+            { id: 'A11', name: '', selected: false, isLocked: false },
+            { id: 'A12', name: '', selected: false, isLocked: false },
+            { id: 'A13', name: '', selected: false, isLocked: false },
+            { id: 'A15', name: '', selected: false, isLocked: false },
+            { id: 'A16', name: '', selected: false, isLocked: false },
+            { id: 'A18', name: '', selected: false, isLocked: false },
+            { id: 'A19', name: '', selected: false, isLocked: false },
+            { id: 'A20', name: '', selected: false, isLocked: false },
+            { id: 'A21', name: '', selected: false, isLocked: false },
+            { id: 'A22', name: '', selected: false, isLocked: false },
+            { id: 'A23', name: '', selected: false, isLocked: false },
+            { id: 'A25', name: '', selected: false, isLocked: false },
+            { id: 'A26', name: '', selected: false, isLocked: false },
+            { id: 'A28', name: '', selected: false, isLocked: false },
+            { id: 'A29', name: '', selected: false, isLocked: false },
+            { id: 'A30', name: '', selected: false, isLocked: false },
+            { id: 'A31', name: '', selected: false, isLocked: false },
+            { id: 'A32', name: '', selected: false, isLocked: false },
+            { id: 'A33', name: '', selected: false, isLocked: false },
+            { id: 'A35', name: '', selected: false, isLocked: false },
+            { id: 'A36', name: '', selected: false, isLocked: false },
+            { id: 'A38', name: '', selected: false, isLocked: false },
+            { id: 'A39', name: '', selected: false, isLocked: false },
+            { id: 'A50', name: '', selected: false, isLocked: false },
+            { id: 'F01', name: '', selected: false, isLocked: false },
+            { id: 'F02', name: '', selected: false, isLocked: false },
+            { id: 'F03', name: '', selected: false, isLocked: false },
+            { id: 'F04', name: '', selected: false, isLocked: false },
+            { id: 'F05', name: '', selected: false, isLocked: false },
+            { id: 'F06', name: '', selected: false, isLocked: false },
+            { id: 'F08', name: '', selected: false, isLocked: false },
+            { id: 'F10', name: '', selected: false, isLocked: false },
+            { id: 'F11', name: '', selected: false, isLocked: false },
+            { id: 'F12', name: '', selected: false, isLocked: false },
+            { id: 'F13', name: '', selected: false, isLocked: false }
+        ];
+
+        function arrayToObject(seatArray) {
+            const obj = {};
+            seatArray.forEach(seat => {
+                obj[seat.id] = { ...seat };
+            });
+            return obj;
+        }
+
+        function getDefaultSeatsObject() {
+            return arrayToObject(DEFAULT_SEATS);
+        }
 
         let socket;
         let userId;
@@ -739,6 +797,7 @@
         }
 
         function renderSeats() {
+            ensureAllSeatsExist();
             document.getElementById('leftSeats').innerHTML = SEAT_CONFIG.left.map(id => createSeatHTML(id)).join('');
             document.getElementById('rightSeats').innerHTML = SEAT_CONFIG.right.map(id => createSeatHTML(id)).join('');
             document.getElementById('frontSeats').innerHTML = SEAT_CONFIG.front.map(id => createSeatHTML(id)).join('');
@@ -775,6 +834,15 @@
                     ${seat.name ? `<div class="seat-name">${seat.name.length > 4 ? seat.name.substring(0, 4) + '...' : seat.name}</div>` : ''}
                 </div>
             `;
+        }
+
+        function ensureAllSeatsExist() {
+            const defaultSeats = getDefaultSeatsObject();
+            for (const id in defaultSeats) {
+                if (!seats[id]) {
+                    seats[id] = { ...defaultSeats[id] };
+                }
+            }
         }
 
         function onSeatClick(id) {
@@ -924,13 +992,31 @@
             });
 
             socket.on('seatsData', (data) => {
-                seats = data.seats || {};
+                if (data && data.seats) {
+                    // 如果是数组格式，转换为对象
+                    if (Array.isArray(data.seats)) {
+                        seats = arrayToObject(data.seats);
+                    } else {
+                        seats = data.seats;
+                    }
+                } else {
+                    // 没有数据时使用默认座位
+                    seats = getDefaultSeatsObject();
+                }
                 renderSeats();
             });
 
             socket.on('seatsUpdated', ({ date, data }) => {
                 if (date === currentDate) {
-                    seats = data.seats || {};
+                    if (data && data.seats) {
+                        if (Array.isArray(data.seats)) {
+                            seats = arrayToObject(data.seats);
+                        } else {
+                            seats = data.seats;
+                        }
+                    } else {
+                        seats = getDefaultSeatsObject();
+                    }
                     renderSeats();
                 }
             });
