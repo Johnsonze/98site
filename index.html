@@ -568,7 +568,7 @@
     </style>
 </head>
 <body>
-    <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-overlay hidden" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">正在连接服务器...</div>
     </div>
@@ -621,7 +621,7 @@
                 <span>正在选座</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color selected"></div>
+                <div class="legend-color.selected"></div>
                 <span>已占用</span>
             </div>
         </div>
@@ -793,7 +793,11 @@
             closeModal();
             currentDate = date;
             generateDates();
-            socket.emit('getSeats', currentDate);
+            seats = getDefaultSeatsObject();
+            renderSeats();
+            if (socket) {
+                socket.emit('getSeats', currentDate);
+            }
         }
 
         function renderSeats() {
@@ -867,11 +871,17 @@
                 return;
             }
 
-            socket.emit('lockSeat', { date: currentDate, seatId: id, userId: userId });
+            if (socket) {
+                socket.emit('lockSeat', { date: currentDate, seatId: id, userId: userId });
+            } else {
+                alert('服务器未连接，请稍后再试');
+            }
         }
 
         function unlockSeat(seatId) {
-            socket.emit('unlockSeat', { date: currentDate, seatId: seatId, userId: userId });
+            if (socket) {
+                socket.emit('unlockSeat', { date: currentDate, seatId: seatId, userId: userId });
+            }
         }
 
         function openModal(id) {
@@ -920,7 +930,7 @@
                 return;
             }
 
-            if (currentSeatId) {
+            if (currentSeatId && socket) {
                 socket.emit('confirmSeat', { 
                     date: currentDate, 
                     seatId: currentSeatId, 
@@ -928,16 +938,20 @@
                     name: name 
                 });
                 closeModal();
+            } else {
+                alert('服务器未连接，请稍后再试');
             }
         }
 
         function releaseSeat() {
-            if (currentSeatId) {
+            if (currentSeatId && socket) {
                 socket.emit('releaseSeat', { 
                     date: currentDate, 
                     seatId: currentSeatId 
                 });
                 closeModal();
+            } else {
+                alert('服务器未连接，请稍后再试');
             }
         }
 
@@ -972,40 +986,30 @@
 
         function init() {
             userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            socket = io(BACKEND_URL);
+            
+            generateDates();
+            seats = getDefaultSeatsObject();
+            renderSeats();
+            
+            try {
+                socket = io(BACKEND_URL);
 
-            socket.on('connect', () => {
-                console.log('已连接到服务器');
-                updateConnectionStatus(true);
-                updateLoading(false);
-                generateDates();
-                socket.emit('getSeats', currentDate);
-            });
+                socket.on('connect', () => {
+                    console.log('已连接到服务器');
+                    updateConnectionStatus(true);
+                    socket.emit('getSeats', currentDate);
+                });
 
-            socket.on('disconnect', () => {
-                console.log('与服务器断开连接');
-                updateConnectionStatus(false);
-            });
+                socket.on('disconnect', () => {
+                    console.log('与服务器断开连接');
+                    updateConnectionStatus(false);
+                });
 
-            socket.on('onlineCount', (count) => {
-                document.getElementById('onlineCount').textContent = `在线人数: ${count}`;
-            });
+                socket.on('onlineCount', (count) => {
+                    document.getElementById('onlineCount').textContent = `在线人数: ${count}`;
+                });
 
-            socket.on('seatsData', (data) => {
-                if (data && data.seats) {
-                    if (Array.isArray(data.seats)) {
-                        seats = arrayToObject(data.seats);
-                    } else {
-                        seats = data.seats;
-                    }
-                } else {
-                    seats = getDefaultSeatsObject();
-                }
-                renderSeats();
-            });
-
-            socket.on('seatsUpdated', ({ date, data }) => {
-                if (date === currentDate) {
+                socket.on('seatsData', (data) => {
                     if (data && data.seats) {
                         if (Array.isArray(data.seats)) {
                             seats = arrayToObject(data.seats);
@@ -1016,19 +1020,34 @@
                         seats = getDefaultSeatsObject();
                     }
                     renderSeats();
-                }
-            });
+                });
 
-            socket.on('seatLocked', ({ seatId }) => {
-                isLockedByUser = true;
-                openModal(seatId);
-            });
+                socket.on('seatsUpdated', ({ date, data }) => {
+                    if (date === currentDate) {
+                        if (data && data.seats) {
+                            if (Array.isArray(data.seats)) {
+                                seats = arrayToObject(data.seats);
+                            } else {
+                                seats = data.seats;
+                            }
+                        } else {
+                            seats = getDefaultSeatsObject();
+                        }
+                        renderSeats();
+                    }
+                });
 
-            socket.on('error', ({ message }) => {
-                alert(message);
-            });
+                socket.on('seatLocked', ({ seatId }) => {
+                    isLockedByUser = true;
+                    openModal(seatId);
+                });
 
-            updateLoading(true, '正在连接服务器...');
+                socket.on('error', ({ message }) => {
+                    alert(message);
+                });
+            } catch (e) {
+                console.error('连接服务器失败:', e);
+            }
         }
 
         window.addEventListener('load', init);
